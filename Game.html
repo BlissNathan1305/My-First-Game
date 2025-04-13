@@ -1,0 +1,335 @@
+<!DoCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bubble Pop Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #ui-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        #start-screen, 
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 20;
+            color: white;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        #game-over-screen {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-container">
+            <div>Score: <span id="score">0</span></div>
+            <div>Time: <span id="time">60</span>s</div>
+        </div>
+        <div id="start-screen">
+            <h1>Bubble Pop!</h1>
+            <p>Tap or click bubbles to pop them!</p>
+            <button class="button" id="start-button">Start Game</button>
+        </div>
+        <div id="game-over-screen">
+            <h1>Game Over!</h1>
+            <p>Your Score: <span id="final-score">0</span></p>
+            <button class="button" id="restart-button">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const timeElement = document.getElementById('time');
+        const finalScoreElement = document.getElementById('final-score');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+
+        let gameActive = false;
+        let score = 0;
+        let timeLeft = 60;
+        let bubbles = [];
+        let timerId;
+        let animationId;
+        let isMobile = window.innerWidth <= 768;
+
+        // Bubble class
+        class Bubble {
+            constructor() {
+                this.radius = Math.random() * 30 + 20;
+                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+                this.y = canvas.height + this.radius;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = -1.5 - Math.random() * 3;
+                this.color = getRandomColor();
+                this.popped = false;
+                this.popFrame = 0;
+                this.maxPopFrames = 10;
+            }
+
+            update() {
+                if (this.popped) {
+                    this.popFrame++;
+                    return;
+                }
+                
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                // Bounce off walls
+                if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) {
+                    this.speedX = -this.speedX;
+                }
+            }
+
+            draw() {
+                if (this.popped) {
+                    // Draw popping animation
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * (1 - this.popFrame / this.maxPopFrames), 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                    ctx.closePath();
+                    
+                    // Draw pop lines
+                    const lines = 8;
+                    const lineLength = this.radius * 0.8 * (this.popFrame / this.maxPopFrames);
+                    
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 3;
+                    
+                    for (let i = 0; i < lines; i++) {
+                        const angle = (Math.PI * 2 / lines) * i;
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y);
+                        ctx.lineTo(
+                            this.x + Math.cos(angle) * lineLength,
+                            this.y + Math.sin(angle) * lineLength
+                        );
+                        ctx.stroke();
+                    }
+                    return;
+                }
+
+                // Draw bubble
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                // Add shine
+                ctx.beginPath();
+                ctx.arc(this.x - this.radius * 0.3, this.y - this.radius * 0.3, this.radius * 0.2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fill();
+            }
+
+            contains(x, y) {
+                const distance = Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2);
+                return distance <= this.radius;
+            }
+
+            pop() {
+                if (!this.popped) {
+                    this.popped = true;
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // Get random color
+        function getRandomColor() {
+            const colors = [
+                '#FF6384', // Pink
+                '#36A2EB', // Blue
+                '#FFCE56', // Yellow
+                '#4BC0C0', // Teal
+                '#9966FF', // Purple
+                '#FF9F40'  // Orange
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Resize canvas when window is resized
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            isMobile = window.innerWidth <= 768;
+        }
+
+        // Initialize game
+        function initGame() {
+            resizeCanvas();
+            score = 0;
+            timeLeft = 60;
+            bubbles = [];
+            scoreElement.textContent = score;
+            timeElement.textContent = timeLeft;
+            gameActive = true;
+            
+            // Start game loop
+            gameLoop();
+            
+            // Start timer
+            timerId = setInterval(() => {
+                timeLeft--;
+                timeElement.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+            
+            // Add new bubbles periodically
+            setInterval(() => {
+                if (gameActive && bubbles.length < (isMobile ? 10 : 15)) {
+                    bubbles.push(new Bubble());
+                }
+            }, 500);
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (!gameActive) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update and draw bubbles
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                bubbles[i].update();
+                bubbles[i].draw();
+                
+                // Remove bubbles that are off screen or finished popping
+                if (bubbles[i].y + bubbles[i].radius < 0 || 
+                    (bubbles[i].popped && bubbles[i].popFrame >= bubbles[i].maxPopFrames)) {
+                    bubbles.splice(i, 1);
+                }
+            }
+            
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // Handle touch/click events
+        function handleInteraction(e) {
+            if (!gameActive) return;
+            
+            e.preventDefault();
+            
+            let x, y;
+            
+            if (e.type === 'touchstart') {
+                const touch = e.touches[0];
+                x = touch.clientX;
+                y = touch.clientY;
+            } else {
+                x = e.clientX;
+                y = e.clientY;
+            }
+            
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                if (bubbles[i].contains(x, y)) {
+                    if (bubbles[i].pop()) {
+                        score += Math.floor(bubbles[i].radius);
+                        scoreElement.textContent = score;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // End game
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerId);
+            cancelAnimationFrame(animationId);
+            
+            finalScoreElement.textContent = score;
+            gameOverScreen.style.display = 'flex';
+        }
+
+        // Event listeners
+        window.addEventListener('resize', resizeCanvas);
+        canvas.addEventListener('mousedown', handleInteraction);
+        canvas.addEventListener('touchstart', handleInteraction, { passive: false });
+        
+        startButton.addEventListener('click', () => {
+            startScreen.style.display = 'none';
+            initGame();
+        });
+        
+        restartButton.addEventListener('click', () => {
+            gameOverScreen.style.display = 'none';
+            initGame();
+        });
+
+        // Initial setup
+        resizeCanvas();
+    </script>
+</body>
+</html>
+
