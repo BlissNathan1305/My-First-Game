@@ -1,0 +1,152 @@
+import React, { useState } from 'react';
+import * as math from 'mathjs';
+
+const Calculator = () => {
+  const [display, setDisplay] = useState('0');
+  const [expression, setExpression] = useState('');
+  const [showingResult, setShowingResult] = useState(false);
+  const [mode, setMode] = useState('standard'); // 'standard' or 'trig'
+  
+  const handleButtonClick = (value) => {
+    if (showingResult) {
+      setExpression(value);
+      setDisplay(value);
+      setShowingResult(false);
+    } else {
+      if (display === '0' && !['/', '*', '+', '-', '.'].includes(value)) {
+        setDisplay(value);
+        setExpression(value);
+      } else {
+        setDisplay(display + value);
+        setExpression(expression + value);
+      }
+    }
+  };
+  
+  const handleEquals = () => {
+    try {
+      const result = math.evaluate(expression);
+      setDisplay(result.toString());
+      setExpression(expression + '=' + result);
+      setShowingResult(true);
+    } catch (error) {
+      setDisplay('Error');
+      setShowingResult(true);
+    }
+  };
+  
+  const handleClear = () => {
+    setDisplay('0');
+    setExpression('');
+    setShowingResult(false);
+  };
+  
+  const handleTrigFunction = (func) => {
+    try {
+      let result;
+      if (func === 'sin' || func === 'cos' || func === 'tan') {
+        // Convert to radians if needed and calculate
+        result = math.evaluate(`${func}(${display})`);
+      } else if (func === 'asin' || func === 'acos' || func === 'atan') {
+        result = math.evaluate(`${func}(${display})`);
+      }
+      
+      setDisplay(result.toString());
+      setExpression(`${func}(${display})=${result}`);
+      setShowingResult(true);
+    } catch (error) {
+      setDisplay('Error');
+      setShowingResult(true);
+    }
+  };
+  
+  return (
+    <div className="flex flex-col items-center justify-center p-4 bg-gray-100 rounded-lg shadow-md w-full max-w-md">
+      <h1 className="text-xl font-bold mb-4">Web Calculator</h1>
+      
+      <div className="w-full mb-4">
+        <div className="bg-gray-200 p-2 rounded text-right mb-1 h-8 overflow-hidden text-gray-500 text-sm">
+          {expression}
+        </div>
+        <div className="bg-white p-4 rounded text-right text-2xl font-bold h-16 flex items-center justify-end">
+          {display}
+        </div>
+      </div>
+      
+      <div className="w-full flex mb-4 gap-2">
+        <button 
+          className={`flex-1 p-2 rounded ${mode === 'standard' ? 'bg-blue-500 text-white' : 'bg-gray-300'}`}
+          onClick={() => setMode('standard')}
+        >
+          Standard
+        </button>
+        <button 
+          className={`flex-1 p-2 rounded ${mode === 'trig' ? 'bg-blue-500 text-white' : 'bg-gray-300'}`}
+          onClick={() => setMode('trig')}
+        >
+          Trigonometry
+        </button>
+      </div>
+      
+      {mode === 'standard' ? (
+        <div className="grid grid-cols-4 gap-2 w-full">
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('7')}>7</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('8')}>8</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('9')}>9</button>
+          <button className="bg-orange-400 p-4 rounded text-white" onClick={() => handleButtonClick('/')}>/</button>
+          
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('4')}>4</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('5')}>5</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('6')}>6</button>
+          <button className="bg-orange-400 p-4 rounded text-white" onClick={() => handleButtonClick('*')}>×</button>
+          
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('1')}>1</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('2')}>2</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('3')}>3</button>
+          <button className="bg-orange-400 p-4 rounded text-white" onClick={() => handleButtonClick('-')}>−</button>
+          
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('0')}>0</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('.')}>.</button>
+          <button className="bg-blue-500 p-4 rounded text-white" onClick={handleEquals}>=</button>
+          <button className="bg-orange-400 p-4 rounded text-white" onClick={() => handleButtonClick('+')}>+</button>
+          
+          <button className="bg-red-500 p-4 rounded text-white col-span-4" onClick={handleClear}>Clear</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 w-full">
+          <button className="bg-purple-500 p-4 rounded text-white" onClick={() => handleTrigFunction('sin')}>sin</button>
+          <button className="bg-purple-500 p-4 rounded text-white" onClick={() => handleTrigFunction('cos')}>cos</button>
+          <button className="bg-purple-500 p-4 rounded text-white" onClick={() => handleTrigFunction('tan')}>tan</button>
+          
+          <button className="bg-purple-500 p-4 rounded text-white" onClick={() => handleTrigFunction('asin')}>sin⁻¹</button>
+          <button className="bg-purple-500 p-4 rounded text-white" onClick={() => handleTrigFunction('acos')}>cos⁻¹</button>
+          <button className="bg-purple-500 p-4 rounded text-white" onClick={() => handleTrigFunction('atan')}>tan⁻¹</button>
+          
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('3.14159')}>π</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('2.71828')}>e</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('^')}>^</button>
+          
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('7')}>7</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('8')}>8</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('9')}>9</button>
+          
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('4')}>4</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('5')}>5</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('6')}>6</button>
+          
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('1')}>1</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('2')}>2</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('3')}>3</button>
+          
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('0')}>0</button>
+          <button className="bg-gray-300 p-4 rounded" onClick={() => handleButtonClick('.')}>.</button>
+          <button className="bg-blue-500 p-4 rounded text-white" onClick={handleEquals}>=</button>
+          
+          <button className="bg-red-500 p-4 rounded text-white col-span-3" onClick={handleClear}>Clear</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Calculator;
