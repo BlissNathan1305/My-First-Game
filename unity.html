@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tap the Target Game</title>
+
+    <style>
+        /* --- CSS Start --- */
+        body {
+            display: flex;
+            flex-direction: column; /* Stack elements vertically */
+            align-items: center; /* Center horizontally */
+            justify-content: center; /* Center vertically (mostly) */
+            min-height: 95vh; /* Use viewport height */
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 10px; /* Add some padding around the edges */
+            box-sizing: border-box; /* Include padding in element dimensions */
+            overscroll-behavior: none; /* Prevent pull-to-refresh/bounce */
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        #score-display {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        #gameCanvas {
+            border: 2px solid black;
+            background-color: white;
+            /* Make canvas responsive, but keep aspect ratio (adjust as needed) */
+            max-width: 90vw;  /* Max width relative to viewport width */
+            max-height: 70vh; /* Max height relative to viewport height */
+            aspect-ratio: 4 / 3; /* Example aspect ratio, adjust if needed */
+
+            /* Crucial for touch interaction on canvas */
+            touch-action: none; /* Disable default touch actions like scrolling/zooming */
+            user-select: none; /* Prevent text selection */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE/Edge */
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+        /* --- CSS End --- */
+    </style>
+</head>
+<body>
+    <h1>Tap the Target!</h1>
+    <div id="score-display">Score: 0</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // --- JavaScript Start ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+
+        let score = 0;
+        let target = {
+            x: 0,
+            y: 0,
+            radius: 30, // Size of the target
+            color: 'red'
+        };
+
+        // --- Canvas Resizing ---
+        // Function to resize canvas to fit CSS dimensions
+        function resizeCanvas() {
+            // Get dimensions set by CSS
+            const cssWidth = canvas.clientWidth;
+            const cssHeight = canvas.clientHeight;
+
+            // Check if canvas dimensions need updating
+            if (canvas.width !== cssWidth || canvas.height !== cssHeight) {
+                canvas.width = cssWidth;
+                canvas.height = cssHeight;
+                console.log(`Canvas resized to: ${canvas.width}x${canvas.height}`);
+                // It's good practice to redraw after resize if needed
+                // For this simple game, moving the target handles the redraw.
+                moveTarget(); // Reposition target after resize
+            }
+        }
+
+
+        // --- Game Logic ---
+
+        // Function to draw the target
+        function drawTarget() {
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2); // Draw a circle
+            ctx.fillStyle = target.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Function to clear the canvas
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Function to move the target to a new random position
+        function moveTarget() {
+            // Ensure target stays fully within bounds
+            target.x = Math.random() * (canvas.width - target.radius * 2) + target.radius;
+            target.y = Math.random() * (canvas.height - target.radius * 2) + target.radius;
+            clearCanvas();
+            drawTarget();
+        }
+
+        // Function to update the score display
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `Score: ${score}`;
+        }
+
+        // Function to handle clicks or taps
+        function handleInteraction(event) {
+            event.preventDefault(); // Prevent default actions (like double-tap zoom)
+
+            let clickX, clickY;
+            const rect = canvas.getBoundingClientRect(); // Get canvas position on page
+
+            if (event.type === 'mousedown') {
+                clickX = event.clientX - rect.left;
+                clickY = event.clientY - rect.top;
+            } else if (event.type === 'touchstart') {
+                // Use the first touch point
+                if (event.touches.length > 0) {
+                     clickX = event.touches[0].clientX - rect.left;
+                     clickY = event.touches[0].clientY - rect.top;
+                } else {
+                    return; // No touch point? Exit.
+                }
+            } else {
+                return; // Ignore other event types
+            }
+
+
+            // --- Hit Detection ---
+            // Calculate distance between click/tap and target center
+            const dx = clickX - target.x;
+            const dy = clickY - target.y;
+            // Use squared distance to avoid expensive Math.sqrt()
+            const distanceSquared = dx * dx + dy * dy;
+
+            // Check if the click/tap is inside the target
+            if (distanceSquared < target.radius * target.radius) {
+                score++;
+                updateScoreDisplay();
+                moveTarget(); // Move target to a new spot
+            }
+        }
+
+        // --- Initialization ---
+
+        // Set initial score display
+        updateScoreDisplay();
+
+        // Initial canvas resize and draw
+        resizeCanvas(); // Call resize once initially
+        // window.addEventListener('resize', resizeCanvas); // Add listener for window resize
+
+        // Set up event listeners
+        canvas.addEventListener('mousedown', handleInteraction); // For desktop mouse
+        canvas.addEventListener('touchstart', handleInteraction); // For mobile touch
+
+        // Start the game - place the first target
+        moveTarget();
+
+        // Make the canvas resize when the window resizes
+        // Use a debounce function if performance becomes an issue on frequent resizes
+        window.addEventListener('resize', resizeCanvas);
+        // --- JavaScript End ---
+    </script>
+</body>
+</html>
+
+
+
