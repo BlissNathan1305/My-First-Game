@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.1.0/math.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        
+        .calculator-container {
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 350px;
+        }
+        
+        .calculator-display {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            text-align: right;
+            font-size: 24px;
+            height: 30px;
+            overflow: hidden;
+        }
+        
+        .calculator-expression {
+            background-color: #e8e8e8;
+            padding: 5px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            text-align: right;
+            font-size: 14px;
+            color: #666;
+            height: 20px;
+            overflow: hidden;
+        }
+        
+        .mode-switch {
+            display: flex;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        
+        .mode-button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .mode-active {
+            background-color: #4a90e2;
+            color: white;
+        }
+        
+        .mode-inactive {
+            background-color: #ddd;
+        }
+        
+        .button-grid {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .standard-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        
+        .trig-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .calculator-button {
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .number-button {
+            background-color: #e0e0e0;
+        }
+        
+        .number-button:hover {
+            background-color: #d0d0d0;
+        }
+        
+        .operation-button {
+            background-color: #f5a623;
+            color: white;
+        }
+        
+        .operation-button:hover {
+            background-color: #e69514;
+        }
+        
+        .equals-button {
+            background-color: #4a90e2;
+            color: white;
+        }
+        
+        .equals-button:hover {
+            background-color: #3a80d2;
+        }
+        
+        .clear-button {
+            background-color: #e74c3c;
+            color: white;
+            grid-column: span 4;
+        }
+        
+        .clear-button-trig {
+            grid-column: span 3;
+        }
+        
+        .clear-button:hover {
+            background-color: #d43c2c;
+        }
+        
+        .trig-button {
+            background-color: #9b59b6;
+            color: white;
+        }
+        
+        .trig-button:hover {
+            background-color: #8b49a6;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+        
+        const Calculator = () => {
+            const [display, setDisplay] = useState('0');
+            const [expression, setExpression] = useState('');
+            const [showingResult, setShowingResult] = useState(false);
+            const [mode, setMode] = useState('standard'); // 'standard' or 'trig'
+            
+            const handleButtonClick = (value) => {
+                if (showingResult) {
+                    setExpression(value);
+                    setDisplay(value);
+                    setShowingResult(false);
+                } else {
+                    if (display === '0' && !['/', '*', '+', '-', '.'].includes(value)) {
+                        setDisplay(value);
+                        setExpression(value);
+                    } else {
+                        setDisplay(display + value);
+                        setExpression(expression + value);
+                    }
+                }
+            };
+            
+            const handleEquals = () => {
+                try {
+                    const result = math.evaluate(expression);
+                    setDisplay(result.toString());
+                    setExpression(expression + '=' + result);
+                    setShowingResult(true);
+                } catch (error) {
+                    setDisplay('Error');
+                    setShowingResult(true);
+                }
+            };
+            
+            const handleClear = () => {
+                setDisplay('0');
+                setExpression('');
+                setShowingResult(false);
+            };
+            
+            const handleTrigFunction = (func) => {
+                try {
+                    let result;
+                    if (func === 'sin' || func === 'cos' || func === 'tan') {
+                        result = math.evaluate(`${func}(${display})`);
+                    } else if (func === 'asin' || func === 'acos' || func === 'atan') {
+                        result = math.evaluate(`${func}(${display})`);
+                    }
+                    
+                    setDisplay(result.toString());
+                    setExpression(`${func}(${display})=${result}`);
+                    setShowingResult(true);
+                } catch (error) {
+                    setDisplay('Error');
+                    setShowingResult(true);
+                }
+            };
+            
+            return (
+                <div className="calculator-container">
+                    <h2 style={{ textAlign: 'center', marginTop: 0 }}>Web Calculator</h2>
+                    
+                    <div className="calculator-expression">{expression}</div>
+                    <div className="calculator-display">{display}</div>
+                    
+                    <div className="mode-switch">
+                        <button 
+                            className={`mode-button ${mode === 'standard' ? 'mode-active' : 'mode-inactive'}`}
+                            onClick={() => setMode('standard')}
+                        >
+                            Standard
+                        </button>
+                        <button 
+                            className={`mode-button ${mode === 'trig' ? 'mode-active' : 'mode-inactive'}`}
+                            onClick={() => setMode('trig')}
+                        >
+                            Trigonometry
+                        </button>
+                    </div>
+                    
+                    {mode === 'standard' ? (
+                        <div className="button-grid standard-grid">
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('7')}>7</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('8')}>8</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('9')}>9</button>
+                            <button className="calculator-button operation-button" onClick={() => handleButtonClick('/')}>/</button>
+                            
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('4')}>4</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('5')}>5</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('6')}>6</button>
+                            <button className="calculator-button operation-button" onClick={() => handleButtonClick('*')}>×</button>
+                            
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('1')}>1</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('2')}>2</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('3')}>3</button>
+                            <button className="calculator-button operation-button" onClick={() => handleButtonClick('-')}>−</button>
+                            
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('0')}>0</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('.')}>.</button>
+                            <button className="calculator-button equals-button" onClick={handleEquals}>=</button>
+                            <button className="calculator-button operation-button" onClick={() => handleButtonClick('+')}>+</button>
+                            
+                            <button className="calculator-button clear-button" onClick={handleClear}>Clear</button>
+                        </div>
+                    ) : (
+                        <div className="button-grid trig-grid">
+                            <button className="calculator-button trig-button" onClick={() => handleTrigFunction('sin')}>sin</button>
+                            <button className="calculator-button trig-button" onClick={() => handleTrigFunction('cos')}>cos</button>
+                            <button className="calculator-button trig-button" onClick={() => handleTrigFunction('tan')}>tan</button>
+                            
+                            <button className="calculator-button trig-button" onClick={() => handleTrigFunction('asin')}>sin⁻¹</button>
+                            <button className="calculator-button trig-button" onClick={() => handleTrigFunction('acos')}>cos⁻¹</button>
+                            <button className="calculator-button trig-button" onClick={() => handleTrigFunction('atan')}>tan⁻¹</button>
+                            
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('3.14159')}>π</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('2.71828')}>e</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('^')}>^</button>
+                            
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('7')}>7</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('8')}>8</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('9')}>9</button>
+                            
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('4')}>4</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('5')}>5</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('6')}>6</button>
+                            
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('1')}>1</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('2')}>2</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('3')}>3</button>
+                            
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('0')}>0</button>
+                            <button className="calculator-button number-button" onClick={() => handleButtonClick('.')}>.</button>
+                            <button className="calculator-button equals-button" onClick={handleEquals}>=</button>
+                            
+                            <button className="calculator-button clear-button clear-button-trig" onClick={handleClear}>Clear</button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        ReactDOM.render(<Calculator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
+
