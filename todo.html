@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List with Editing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        #todo-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0px 0px 10px #ccc;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            padding: 10px;
+            background: #ddd;
+            margin: 5px 0;
+            cursor: pointer;
+            position: relative;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: gray;
+        }
+        button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="todo-container">
+        <h2>To-Do List</h2>
+        <input type="text" id="taskInput" placeholder="Add a new task">
+        <button onclick="addTask()">Add</button>
+        <ul id="taskList"></ul>
+    </div>
+
+    <script>
+        function addTask() {
+            let taskInput = document.getElementById("taskInput");
+            let taskList = document.getElementById("taskList");
+
+            if (taskInput.value.trim() !== "") {
+                let li = document.createElement("li");
+                li.textContent = taskInput.value;
+
+                li.onclick = function() {
+                    li.classList.toggle("completed");
+                };
+
+                li.ondblclick = function() {
+                    let newText = prompt("Edit task:", li.textContent);
+                    if (newText !== null && newText.trim() !== "") {
+                        li.textContent = newText;
+                    }
+                };
+
+                taskList.appendChild(li);
+                taskInput.value = "";
+            }
+        }
+    </script>
+
+</body>
+</html>
+
