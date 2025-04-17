@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Age Calculator</title>
+    <meta name="description" content="Calculate your age based on your date of birth.">
+
+    <style>
+        /* --- CSS Styles --- */
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+            background-color: #f4f4f4;
+            min-height: 100vh; /* Ensure body takes full height */
+            margin: 0;
+        }
+
+        main { /* Added a main container for better structure */
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 20px; /* Add some padding */
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%; /* Allow container to shrink on small screens */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            width: calc(100% - 22px); /* Adjust for padding */
+            box-sizing: border-box; /* Include padding in width */
+            font-size: 1em;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #result {
+            margin-top: 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            min-height: 1.5em; /* Prevent layout shift */
+            word-wrap: break-word; /* Ensure long error messages wrap */
+        }
+
+        #result .error {
+            color: #dc3545;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <div class="container">
+            <h1>Age Calculator</h1>
+
+            <label for="birthdate">Enter your Date of Birth:</label>
+            <!-- Input field for date -->
+            <input type="date" id="birthdate">
+
+            <!-- Button to trigger calculation -->
+            <button id="calculateBtn">Calculate Age</button>
+
+            <!-- Paragraph where the result will be displayed -->
+            <p id="result">Your age will appear here.</p>
+        </div>
+    </main>
+
+    <script>
+        /* --- JavaScript Logic --- */
+
+        // Wait for the HTML document to be fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // Get references to the HTML elements
+            const birthdateInput = document.getElementById('birthdate');
+            const calculateButton = document.getElementById('calculateBtn');
+            const resultElement = document.getElementById('result');
+
+            // Check if all required elements exist before adding listener
+            if (birthdateInput && calculateButton && resultElement) {
+                // Add event listener to the button
+                calculateButton.addEventListener('click', calculateAge);
+
+                // Optional: Allow pressing Enter in the date field to calculate
+                birthdateInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        calculateAge();
+                    }
+                });
+
+            } else {
+                console.error("One or more elements for the age calculator are missing!");
+                // Optionally display an error to the user in the result area
+                if(resultElement) {
+                    resultElement.innerHTML = '<span class="error">Error initializing calculator components.</span>';
+                }
+            }
+
+            // The age calculation function
+            function calculateAge() {
+                const birthdateString = birthdateInput.value;
+
+                // --- Validation ---
+                if (!birthdateString) {
+                    resultElement.innerHTML = '<span class="error">Please select your date of birth.</span>';
+                    return; // Stop the function
+                }
+
+                const birthDate = new Date(birthdateString);
+                const today = new Date();
+
+                // Adjust for time zone offset to prevent potential off-by-one day errors
+                // This treats the birthdate as UTC midnight to compare consistently with today's date parts
+                // Note: This helps in many cases but timezone handling can be complex.
+                // For highest accuracy across all zones, a library might be needed.
+                const birthDateAdjusted = new Date(birthDate.getUTCFullYear(), birthDate.getUTCMonth(), birthDate.getUTCDate());
+
+
+                // Check if the entered date itself is invalid (e.g., manual typing errors)
+                if (isNaN(birthDateAdjusted.getTime())) {
+                     resultElement.innerHTML = '<span class="error">Invalid date entered. Please check the format.</span>';
+                     return;
+                }
+
+                // Check if birth date is in the future (compare dates only, ignore time)
+                const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                if (birthDateAdjusted > todayDateOnly) {
+                     resultElement.innerHTML = '<span class="error">Birthdate cannot be in the future.</span>';
+                     return; // Stop the function
+                }
+
+
+                // --- Calculation ---
+                let age = today.getFullYear() - birthDateAdjusted.getFullYear();
+                const monthDifference = today.getMonth() - birthDateAdjusted.getMonth();
+                const dayDifference = today.getDate() - birthDateAdjusted.getDate();
+
+                // Adjust age if the birthday hasn't happened yet this year
+                // (If month difference is negative, or if month is same but day difference is negative)
+                if (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)) {
+                    age--;
+                }
+
+                 // --- Handle edge case: age is negative ---
+                 // (Should be caught by future date check, but good safety net)
+                 if (age < 0) {
+                     resultElement.innerHTML = '<span class="error">Calculation error. Please verify the birthdate.</span>';
+                     return;
+                 }
+
+                // --- Display Result ---
+                resultElement.textContent = `You are ${age} years old.`;
+                resultElement.classList.remove('error'); // Remove error class if calculation is successful
+            }
+
+        }); // End of DOMContentLoaded
+    </script>
+
+</body>
+</html>
