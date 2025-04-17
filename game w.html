@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Simple 2D Game (Single File)</title>
+
+    <style>
+        /* --- CSS Styles --- */
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column; /* Stack elements vertically */
+            align-items: center; /* Center horizontally */
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+
+        h1, #instructions, #score {
+            color: #333;
+            text-align: center; /* Ensure text is centered */
+        }
+
+        #score {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            border: 2px solid black;
+            background-color: #fff;
+            /* Prevents unwanted touch behaviors like scrolling or zooming on the canvas */
+            touch-action: none;
+            max-width: 100%; /* Ensure canvas scales down on smaller screens */
+            display: none; /* Initially hidden until game starts */
+            /* Set explicit width/height in JS, but max-width helps layout */
+        }
+
+        #start-button-container {
+            display: block; /* Initially visible */
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #start-button-container button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- --- HTML Structure --- -->
+    <h1>Simple Collector Game</h1>
+    <div id="instructions">Click or Tap to Move! Collect the Circles.</div>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="start-button-container">
+        <!-- Button to ensure AudioContext starts after user interaction -->
+        <button id="startButton">Start Game</button>
+    </div>
+
+    <script>
+        // --- JavaScript Game Logic ---
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const startButton = document.getElementById('startButton');
+        const startButtonContainer = document.getElementById('start-button-container');
+
+        // --- Game Settings ---
+        let canvasWidth = Math.min(window.innerWidth - 40, 500); // Max width 500px
+        let canvasHeight = Math.min(window.innerHeight - 180, 400); // Adjust height based on window (allow more space for text)
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        const playerSize = 30;
+        const coinSize = 15;
+        const playerSpeed = 4; // Pixels per frame
+
+        // --- Game State ---
+        let score = 0;
+        let player = {
+            x: canvas.width / 2 - playerSize / 2,
+            y: canvas.height / 2 - playerSize / 2,
+            targetX: canvas.width / 2 - playerSize / 2,
+            targetY: canvas.height / 2 - playerSize / 2
+        };
+        let coin = {
+            x: Math.random() * (canvas.width - coinSize),
+            y: Math.random() * (canvas.height - coinSize)
+        };
+        let gameRunning = false;
+
+        // --- Audio Handling ---
+        let audioContext;
+        let coinSoundBuffer = null;
+
+        function initAudio() {
+            try {
+                // Create AudioContext after a user gesture (like button click)
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // *** IMPORTANT: CHANGE 'coin.wav' if your sound file has a different name ***
+                loadSound('coin.wav');
+            } catch (e) {
+                console.error("Web Audio API is not supported in this browser or failed to initialize.", e);
+                alert("Audio could not be initialized. Sound effects will be disabled.");
+            }
+        }
+
+        async function loadSound(url) {
+            if (!audioContext) return;
+            try {
+                // Assuming the sound file is in the same directory as the HTML file
+                const response = await fetch(url);
+                if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status} loading ${url}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                audioContext.decodeAudioData(arrayBuffer, (buffer) => {
+                    coinSoundBuffer = buffer;
+                    console.log("Sound loaded successfully!");
+                }, (error) => {
+                    console.error(`Error decoding sound file ${url}:`, error);
+                    alert(`Failed to load sound: ${url}. Make sure the file exists in the same folder as the HTML file and the server is configured correctly (if using one).`);
+                });
+            } catch (error) {
+                console.error(`Error fetching sound file ${url}:`, error);
+                alert(`Could not fetch sound file: ${url}. Check the file path and ensure it's in the same directory. If running locally, browser security might prevent loading - try using a local server.`);
+            }
+        }
+
+        function playSound(buffer) {
+            if (!audioContext || !buffer || audioContext.state === 'suspended') {
+                 // Try to resume if suspended, might happen after inactivity
+                 if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log("AudioContext resumed for playback.");
+                        // Try playing again after resuming
+                        if (audioContext.state === 'running') {
+                            const source = audioContext.createBufferSource();
+                            source.buffer = buffer;
+                            source.connect(audioContext.destination);
+                            source.start(0);
+                        }
+                    }).catch(e => console.error("Error resuming AudioContext:", e));
+                 } else {
+                    console.log("AudioContext not ready, buffer not loaded, or cannot play sound.");
+                 }
+                 return; // Don't proceed if not ready
+            }
+
+            // If context is running, play the sound
+            if (audioContext.state === 'running') {
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+            }
+        }
+
+        // --- Input Handling ---
+        function handleInteraction(event) {
+            if (!gameRunning || !canvas) return;
+
+            // Prevent default touch behavior (like scrolling or zooming)
+            event.preventDefault();
+
+            const rect = canvas.getBoundingClientRect();
+            let interactionX, interactionY;
+
+            if (event.touches && event.touches.length > 0) {
+                // Touch event
+                interactionX = event.touches[0].clientX - rect.left;
+                interactionY = event.touches[0].clientY - rect.top;
+            } else if (event.clientX !== undefined) {
+                // Mouse event
+                interactionX = event.clientX - rect.left;
+                interactionY = event.clientY - rect.top;
+            } else {
+                return; // Ignore if no valid coordinates
+            }
+
+            // Set player's target destination
+            player.targetX = interactionX - playerSize / 2;
+            player.targetY = interactionY - playerSize / 2;
+
+             // Attempt to resume AudioContext on any interaction if suspended
+             // This helps ensure sound works after the page might have been idle
+             if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log("AudioContext resumed on interaction.");
+                }).catch(e => console.error("Error resuming AudioContext on interaction:", e));;
+            }
+        }
+
+        // Add event listeners for both mouse and touch
+        // Use passive: false to allow preventDefault within the handler
+        canvas.addEventListener('mousedown', handleInteraction);
+        canvas.addEventListener('touchstart', handleInteraction, { passive: false });
+        canvas.addEventListener('touchmove', handleInteraction, { passive: false }); // Handle dragging touch
+
+
+        // --- Game Logic ---
+        function update() {
+            if (!gameRunning) return;
+
+            // Move player towards target
+            const dx = player.targetX - player.x;
+            const dy = player.targetY - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > playerSpeed) {
+                player.x += (dx / distance) * playerSpeed;
+                player.y += (dy / distance) * playerSpeed;
+            } else {
+                // Snap to target if close enough
+                player.x = player.targetX;
+                player.y = player.targetY;
+            }
+
+            // Keep player within canvas bounds
+            player.x = Math.max(0, Math.min(canvas.width - playerSize, player.x));
+            player.y = Math.max(0, Math.min(canvas.height - playerSize, player.y));
+
+
+            // Collision detection (simple rectangle overlap)
+            if (player.x < coin.x + coinSize &&
+                player.x + playerSize > coin.x &&
+                player.y < coin.y + coinSize &&
+                player.y + playerSize > coin.y) {
+                // Collision detected!
+                score++;
+                scoreElement.textContent = `Score: ${score}`;
+                playSound(coinSoundBuffer);
+                // Respawn coin
+                coin.x = Math.random() * (canvas.width - coinSize);
+                coin.y = Math.random() * (canvas.height - coinSize);
+            }
+        }
+
+        function draw() {
+            if (!canvas) return;
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw player (blue square)
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(player.x, player.y, playerSize, playerSize);
+
+            // Draw coin (yellow circle)
+            ctx.fillStyle = 'gold';
+            ctx.beginPath();
+            // Center coordinates for arc are x + radius, y + radius
+            ctx.arc(coin.x + coinSize / 2, coin.y + coinSize / 2, coinSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // --- Game Loop ---
+        let animationFrameId = null; // To potentially stop the loop later if needed
+        function gameLoop() {
+            if (!gameRunning) {
+                 if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId); // Stop requesting frames
+                    animationFrameId = null;
+                 }
+                 return;
+            }
+
+            update();
+            draw();
+
+            // Request next frame
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Start Game ---
+        startButton.addEventListener('click', () => {
+            // Initialize audio on the first click if not already done
+            if (!audioContext) {
+                initAudio();
+            }
+            // Crucially, try to resume the AudioContext if it's suspended.
+            // Browsers often suspend AudioContext until a user interaction.
+            else if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log("AudioContext resumed successfully on start button click.");
+                }).catch(e => console.error("Error resuming AudioContext:", e));
+            }
+
+            // Hide button, show canvas, reset game state
+            startButtonContainer.style.display = 'none';
+            canvas.style.display = 'block'; // Make canvas visible
+            score = 0;
+            scoreElement.textContent = `Score: ${score}`;
+            // Reset player position and target
+            player.x = canvas.width / 2 - playerSize / 2;
+            player.y = canvas.height / 2 - playerSize / 2;
+            player.targetX = player.x;
+            player.targetY = player.y;
+            // Place first coin
+            coin.x = Math.random() * (canvas.width - coinSize);
+            coin.y = Math.random() * (canvas.height - coinSize);
+
+            if (!gameRunning) { // Prevent starting multiple loops
+                gameRunning = true;
+                console.log("Starting game loop...");
+                gameLoop(); // Start the loop
+            }
+        });
+
+        // --- Optional: Handle window resize ---
+        // Note: A simple resize like this might require game state reset for better UX
+         window.addEventListener('resize', () => {
+            console.log("Window resized - game state not automatically adjusted.");
+            // // Basic resize - recalculate dimensions
+            // canvasWidth = Math.min(window.innerWidth - 40, 500);
+            // canvasHeight = Math.min(window.innerHeight - 180, 400);
+            // canvas.width = canvasWidth;
+            // canvas.height = canvasHeight;
+
+            // // Stop game, show start button? Or try to reposition elements?
+            // // For this simple example, we'll just log it. A real game
+            // // would need more robust handling (e.g., pausing, repositioning).
+            // if (gameRunning) {
+            //     draw(); // Redraw immediately with current state in new size
+            // }
+        });
+
+        // Initial setup message
+        console.log("Game ready. Press the 'Start Game' button.");
+
+    </script>
+
+</body>
+</html>
