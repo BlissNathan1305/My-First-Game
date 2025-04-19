@@ -1,0 +1,140 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2D Game Calculator</title>
+  <style>
+    body {
+      font-family: 'Press Start 2P', cursive;
+      background-color: #1c1c2e;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+    .calculator {
+      background: linear-gradient(145deg, #2e2e4d, #1a1a2b);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+      width: 320px;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0); }
+    }
+    .display {
+      width: 100%;
+      height: 50px;
+      font-size: 20px;
+      text-align: right;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      background: #111;
+      color: #00ffff;
+      box-shadow: inset 0 0 10px #00ffff;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    button {
+      padding: 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background: #292946;
+      color: #00ffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px #00ffff;
+      position: relative;
+    }
+    button:hover {
+      background: #3a3a5f;
+      transform: scale(1.05);
+    }
+    .operator {
+      background: #ff0055;
+      color: #fff;
+      box-shadow: 0 4px #ff66a3;
+    }
+    .operator:hover {
+      background: #ff3366;
+    }
+    .clear-btn {
+      grid-column: span 4;
+      background: #444;
+      color: #fff;
+    }
+    .clear-btn:hover {
+      background: #666;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <input type="text" class="display" id="display" disabled />
+    <div class="buttons">
+      <button onclick="append('7')">7</button>
+      <button onclick="append('8')">8</button>
+      <button onclick="append('9')">9</button>
+      <button class="operator" onclick="append('/')">/</button><button onclick="append('4')">4</button>
+  <button onclick="append('5')">5</button>
+  <button onclick="append('6')">6</button>
+  <button class="operator" onclick="append('*')">*</button>
+
+  <button onclick="append('1')">1</button>
+  <button onclick="append('2')">2</button>
+  <button onclick="append('3')">3</button>
+  <button class="operator" onclick="append('-')">-</button>
+
+  <button onclick="append('0')">0</button>
+  <button onclick="append('.')">.</button>
+  <button onclick="calculate()">=</button>
+  <button class="operator" onclick="append('+')">+</button>
+
+  <button class="clear-btn" onclick="clearDisplay()">Clear</button>
+</div>
+
+  </div><audio id="clickSound" src="https://www.fesliyanstudios.com/play-mp3/387" preload="auto"></audio>
+
+  <script>
+    const display = document.getElementById("display");
+    const clickSound = document.getElementById("clickSound");
+
+    function playSound() {
+      clickSound.currentTime = 0;
+      clickSound.play();
+    }
+
+    function append(char) {
+      playSound();
+      display.value += char;
+    }
+
+    function clearDisplay() {
+      playSound();
+      display.value = "";
+    }
+
+    function calculate() {
+      playSound();
+      try {
+        display.value = eval(display.value);
+      } catch {
+        display.value = "Error";
+      }
+    }
+  </script></body>
+</html>
+
