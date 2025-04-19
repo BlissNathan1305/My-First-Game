@@ -1,0 +1,120 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2D Bird Flying Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: #70c5ce; }
+    canvas { display: block; background: linear-gradient(to bottom, #87ceeb, #ffffff); }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <audio id="flapSound" src="https://www.fesliyanstudios.com/play-mp3/387" preload="auto"></audio>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;const flapSound = document.getElementById('flapSound');
+
+// Bird sprite (a simple circle for now)
+let bird = {
+  x: 100,
+  y: canvas.height / 2,
+  radius: 20,
+  gravity: 0.5,
+  lift: -10,
+  velocity: 0
+};
+
+let obstacles = [];
+let frame = 0;
+let gameOver = false;
+
+function drawBird() {
+  ctx.beginPath();
+  ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+  ctx.fillStyle = 'yellow';
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawObstacles() {
+  ctx.fillStyle = 'green';
+  obstacles.forEach(obs => {
+    ctx.fillRect(obs.x, 0, obs.width, obs.top);
+    ctx.fillRect(obs.x, canvas.height - obs.bottom, obs.width, obs.bottom);
+  });
+}
+
+function updateObstacles() {
+  if (frame % 90 === 0) {
+    let gap = 150;
+    let top = Math.random() * (canvas.height / 2);
+    obstacles.push({
+      x: canvas.width,
+      width: 50,
+      top: top,
+      bottom: canvas.height - top - gap
+    });
+  }
+  obstacles.forEach(obs => obs.x -= 3);
+  obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+}
+
+function detectCollision() {
+  for (let obs of obstacles) {
+    if (
+      bird.x + bird.radius > obs.x &&
+      bird.x - bird.radius < obs.x + obs.width &&
+      (bird.y - bird.radius < obs.top || bird.y + bird.radius > canvas.height - obs.bottom)
+    ) {
+      return true;
+    }
+  }
+  if (bird.y + bird.radius > canvas.height || bird.y - bird.radius < 0) return true;
+  return false;
+}
+
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawBird();
+  drawObstacles();
+  updateObstacles();
+
+  bird.velocity += bird.gravity;
+  bird.y += bird.velocity;
+
+  if (detectCollision()) {
+    gameOver = true;
+    ctx.font = '48px sans-serif';
+    ctx.fillStyle = 'red';
+    ctx.fillText('Game Over', canvas.width / 2 - 100, canvas.height / 2);
+    return;
+  }
+
+  frame++;
+  requestAnimationFrame(update);
+}
+
+function flap() {
+  bird.velocity = bird.lift;
+  flapSound.currentTime = 0;
+  flapSound.play();
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !gameOver) flap();
+});
+window.addEventListener('mousedown', () => {
+  if (!gameOver) flap();
+});
+
+update();
+
+  </script>
+</body>
+</html>
+
