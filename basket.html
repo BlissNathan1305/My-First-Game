@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catch the Falling Items</title>
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #87CEEB;
+            border: 2px solid black;
+        }
+        #gameOverScreen {
+            text-align: center;
+            font-size: 24px;
+            font-family: Arial, sans-serif;
+            color: red;
+            display: none;
+        }
+        #restartBtn {
+            display: none;
+            margin: 10px auto;
+            padding: 10px 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div id="gameOverScreen">Game Over!<br>Final Score: <span id="finalScore">0</span></div>
+    <button id="restartBtn">Restart</button>
+
+    <audio id="catchSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_3d46973d96.mp3?filename=collectcoin-6075.mp3"></audio>
+    <audio id="missSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_08cfc2e8f1.mp3?filename=error-126627.mp3"></audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const restartBtn = document.getElementById('restartBtn');
+        const finalScoreDisplay = document.getElementById('finalScore');
+
+        const catchSound = document.getElementById('catchSound');
+        const missSound = document.getElementById('missSound');
+
+        const basket = {
+            width: 70,
+            height: 20,
+            x: canvas.width / 2 - 35,
+            y: canvas.height - 40,
+            speed: 10,
+            dx: 0
+        };
+
+        const fallingItem = {
+            x: Math.random() * (canvas.width - 20),
+            y: -20,
+            size: 20,
+            speed: 4
+        };
+
+        let score = 0;
+        let isGameOver = false;
+
+        function drawBasket() {
+            ctx.fillStyle = 'brown';
+            ctx.fillRect(basket.x, basket.y, basket.width, basket.height);
+        }
+
+        function drawFallingItem() {
+            ctx.beginPath();
+            ctx.arc(fallingItem.x, fallingItem.y, fallingItem.size, 0, Math.PI * 2);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawScore() {
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Score: ${score}`, 10, 25);
+        }
+
+        function moveBasket() {
+            basket.x += basket.dx;
+            if (basket.x < 0) basket.x = 0;
+            if (basket.x + basket.width > canvas.width) basket.x = canvas.width - basket.width;
+        }
+
+        function updateFallingItem() {
+            fallingItem.y += fallingItem.speed;
+
+            if (fallingItem.y > canvas.height) {
+                missSound.play();
+                endGame();
+            }
+
+            if (
+                fallingItem.y + fallingItem.size > basket.y &&
+                fallingItem.x > basket.x &&
+                fallingItem.x < basket.x + basket.width
+            ) {
+                score++;
+                catchSound.play();
+                resetFallingItem();
+            }
+        }
+
+        function resetFallingItem() {
+            fallingItem.x = Math.random() * (canvas.width - 20);
+            fallingItem.y = -20;
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function endGame() {
+            isGameOver = true;
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'block';
+            restartBtn.style.display = 'block';
+        }
+
+        function resetGame() {
+            score = 0;
+            isGameOver = false;
+            basket.x = canvas.width / 2 - basket.width / 2;
+            resetFallingItem();
+            gameOverScreen.style.display = 'none';
+            restartBtn.style.display = 'none';
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (isGameOver) return;
+
+            clearCanvas();
+            drawBasket();
+            drawFallingItem();
+            drawScore();
+            moveBasket();
+            updateFallingItem();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') basket.dx = basket.speed;
+            if (e.key === 'ArrowLeft') basket.dx = -basket.speed;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') basket.dx = 0;
+        });
+
+        // Touch Controls
+        canvas.addEventListener('touchstart', (e) => {
+            const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+            basket.dx = touchX < canvas.width / 2 ? -basket.speed : basket.speed;
+        });
+
+        canvas.addEventListener('touchend', () => {
+            basket.dx = 0;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            basket.x = touchX - basket.width / 2;
+            e.preventDefault();
+        });
+
+        restartBtn.addEventListener('click', resetGame);
+
+        gameLoop();
+    </script>
+</body>
+</html>
+
