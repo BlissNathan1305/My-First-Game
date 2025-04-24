@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Login</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            touch-action: manipulation; /* Prevent zoom on double-tap */
+        }
+        #biometric-login {
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        #biometric-login:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <button id="biometric-login">Login with Biometrics</button>
+    <div id="status"></div>
+
+    <script>
+        // Check if biometric authentication is supported
+        async function isBiometricSupported() {
+            try {
+                return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            } catch (error) {
+                console.error('Biometric support check failed:', error);
+                return false;
+            }
+        }
+
+        // Register a new biometric credential
+        async function registerBiometric() {
+            try {
+                const publicKey = {
+                    challenge: new Uint8Array(32), // In production, generate a random challenge from server
+                    rp: { name: "MyApp" },
+                    user: {
+                        id: new Uint8Array(16), // Unique user ID from server
+                        name: "user@example.com",
+                        displayName: "User"
+                    },
+                    pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+                    authenticatorSelection: {
+                        authenticatorAttachment: "platform", // Use device biometrics
+                        userVerification: "required"
+                    },
+                    timeout: 60000
+                };
+
+                const credential = await navigator.credentials.create({ publicKey });
+                console.log('Biometric registered:', credential);
+                return true;
+            } catch (error) {
+                console.error('Biometric registration failed:', error);
+                return false;
+            }
+        }
+
+        // Authenticate using biometrics
+        async function biometricLogin() {
+            try {
+                const publicKey = {
+                    challenge: new Uint8Array(32), // Random challenge from server
+                    allowCredentials: [], // In production, fetch from server
+                    userVerification: "required",
+                    timeout: 60000
+                };
+
+                const credential = await navigator.credentials.get({ publicKey });
+                console.log('Biometric login successful:', credential);
+                return true;
+            } catch (error) {
+                console.error('Biometric login failed:', error);
+                return false;
+            }
+        }
+
+        // Touch-optimized UI handling
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginButton = document.getElementById('biometric-login');
+            const status = document.getElementById('status');
+
+            // Touch-friendly button styling
+            loginButton.style.padding = '15px 30px';
+            loginButton.style.fontSize = '18px';
+            loginButton.style.borderRadius = '8px';
+            loginButton.style.touchAction = 'manipulation'; // Prevent double-tap zoom
+
+            // Check biometric support on load
+            isBiometricSupported().then(supported => {
+                if (!supported) {
+                    status.textContent = 'Biometric authentication not supported';
+                    loginButton.disabled = true;
+                }
+            });
+
+            // Handle login button click/touch
+            loginButton.addEventListener('click', async () => {
+                status.textContent = 'Initiating biometric login...';
+                
+                // Prevent multiple rapid touches
+                loginButton.disabled = true;
+                
+                try {
+                    const loggedIn = await biometricLogin();
+                    if (loggedIn) {
+                        status.textContent = 'Login successful!';
+                        // Redirect or update UI
+                        window.location.href = '/dashboard';
+                    } else {
+                        status.textContent = 'Login failed. Please try again.';
+                    }
+                } catch (error) {
+                    status.textContent = 'Error during login. Please try again.';
+                } finally {
+                    loginButton.disabled = false;
+                }
+            });
+
+            // Handle touch events for better feedback
+            loginButton.addEventListener('touchstart', () => {
+                loginButton.style.opacity = '0.7'; // Visual feedback
+            });
+            
+            loginButton.addEventListener('touchend', () => {
+                loginButton.style.opacity = '1';
+            });
+        });
+    </script>
+</body>
+</html>
+
