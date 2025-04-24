@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>To-Do List</title>
+  <link rel="stylesheet" href="style.css"> <!--  Link to your CSS file -->
+</head>
+<body>
+  <div class="container">
+    <h1>My To-Do List</h1>
+    <div class="input-group">
+      <input type="text" id="newTask" placeholder="Add a new task...">
+      <button id="addButton">Add</button>
+    </div>
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    const newTaskInput = document.getElementById("newTask");
+    const addButton = document.getElementById("addButton");
+    const taskList = document.getElementById("taskList");
+
+    addButton.addEventListener("click", addTask);
+
+    function addTask() {
+      const taskText = newTaskInput.value.trim();
+      if (taskText !== "") {
+        const listItem = document.createElement("li");
+        listItem.textContent = taskText;
+        taskList.appendChild(listItem);  // Basic add - you'd add animation here
+
+        newTaskInput.value = ""; // Clear the input
+      }
+    }
+  </script>
+</body>
+  </html>

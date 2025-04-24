@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sliding Puzzle Game</title>
+    <style>
+        #puzzle {
+            width: 240px;
+            height: 240px;
+            display: grid;
+            grid-template: repeat(4, 1fr) / repeat(4, 1fr);
+            gap: 2px;
+        }
+        .tile {
+            width: 58px;
+            height: 58px;
+            background-color: lightblue;
+            font-size: 24px;
+            text-align: center;
+            line-height: 58px;
+            cursor: pointer;
+        }
+        .empty {
+            background-color: white;
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sliding Puzzle Game</h1>
+    <div id="puzzle"></div>
+    <script>
+        const puzzle = document.getElementById("puzzle");
+        let tiles = Array.from({ length: 15 }, (_, i) => i + 1);
+        tiles.push(null); // empty tile
+
+        // Shuffle tiles
+        tiles = tiles.sort(() => Math.random() - 0.5);
+
+        // Render tiles
+        const render = () => {
+            puzzle.innerHTML = "";
+            tiles.forEach((tile, index) => {
+                const div = document.createElement("div");
+                div.className = tile === null ? "tile empty" : "tile";
+                if (tile !== null) div.textContent = tile;
+
+                div.addEventListener("click", () => moveTile(index));
+                puzzle.appendChild(div);
+            });
+        };
+
+        // Move tile
+        const moveTile = (index) => {
+            const emptyIndex = tiles.indexOf(null);
+            const validMoves = [emptyIndex - 1, emptyIndex + 1, emptyIndex - 4, emptyIndex + 4];
+            if (validMoves.includes(index)) {
+                [tiles[emptyIndex], tiles[index]] = [tiles[index], tiles[emptyIndex]];
+                render();
+            }
+        };
+
+        render();
+    </script>
+</body>
+</html>
