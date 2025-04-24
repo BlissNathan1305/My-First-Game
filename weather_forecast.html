@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 70%;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #forecast {
+            margin-top: 20px;
+        }
+        .forecast-day {
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Weather Forecast</h1>
+        <form id="weatherForm">
+            <input type="text" id="city" placeholder="Enter city name" required>
+            <button type="submit">Get Forecast</button>
+        </form>
+        <div id="forecast"></div>
+    </div>
+
+    <script>
+        // Replace with your OpenWeatherMap API key
+        const API_KEY = "fbdc808055e5c92efa1f3e26a2e79b2b";
+
+        document.getElementById('weatherForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const city = document.getElementById('city').value;
+            const forecastDiv = document.getElementById('forecast');
+            forecastDiv.innerHTML = 'Loading...';
+
+            try {
+                // OpenWeatherMap API endpoint for 5-day forecast
+                const url = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.cod !== '200') {
+                    forecastDiv.innerHTML = `<p class="error">City not found or API error: ${data.message}</p>`;
+                    return;
+                }
+
+                // Extract forecast data (one entry per day, every 8th entry ~ 24 hours)
+                const forecastList = [];
+                for (let i = 0; i < data.list.length; i += 8) {
+                    const entry = data.list[i];
+                    forecastList.push({
+                        date: entry.dt_txt,
+                        temp: entry.main.temp,
+                        description: entry.weather[0].description,
+                        icon: entry.weather[0].icon
+                    });
+                }
+
+                // Display forecast
+                forecastDiv.innerHTML = `<h2>5-Day Forecast for ${data.city.name}</h2>`;
+                forecastList.forEach(day => {
+                    forecastDiv.innerHTML += `
+                        <div class="forecast-day">
+                            <p><strong>${day.date}</strong></p>
+                            <p>Temperature: ${day.temp}°C</p>
+                            <p>${day.description}</p>
+                            <img src="http://openweathermap.org/img/wn/${day.icon}.png" alt="weather icon">
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                forecastDiv.innerHTML = `<p class="error">Error fetching forecast: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
+
