@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Puzzle Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .puzzle-container {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+        }
+
+        .puzzle-piece {
+            width: 100px;
+            height: 100px;
+            background-size: cover;
+            background-position: center;
+            cursor: grab;
+        }
+
+        .puzzle-piece.empty {
+            background-color: #fff;
+            border: 2px dashed #000;
+        }
+
+        .hide {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="puzzle-container" id="puzzle-container">
+        <!-- Puzzle pieces will be inserted here by JavaScript -->
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const puzzleContainer = document.getElementById('puzzle-container');
+            const puzzleSize = 3; // 3x3 puzzle
+            const imageUrl = 'https://via.placeholder.com/300'; // Replace with the path to your image
+            let emptyPiece;
+
+            function createPuzzlePieces() {
+                const pieces = [];
+                for (let i = 0; i < puzzleSize * puzzleSize; i++) {
+                    const piece = document.createElement('div');
+                    piece.classList.add('puzzle-piece');
+                    piece.dataset.index = i;
+                    piece.style.backgroundImage = `url(${imageUrl})`;
+                    piece.style.backgroundPosition = `-${i % puzzleSize * 100}px -${Math.floor(i / puzzleSize) * 100}px`;
+                    pieces.push(piece);
+                }
+                return pieces;
+            }
+
+            function shufflePieces(pieces) {
+                for (let i = pieces.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+                }
+            }
+
+            function addPiecesToContainer(pieces) {
+                pieces.forEach(piece => {
+                    puzzleContainer.appendChild(piece);
+                });
+                emptyPiece = pieces[pieces.length - 1];
+                emptyPiece.classList.add('empty');
+                emptyPiece.style.backgroundImage = 'none';
+            }
+
+            function makePiecesDraggable(pieces) {
+                pieces.forEach(piece => {
+                    piece.addEventListener('dragstart', dragStart);
+                    piece.addEventListener('dragover', dragOver);
+                    piece.addEventListener('drop', drop);
+                    piece.addEventListener('dragend', dragEnd);
+                });
+            }
+
+            function dragStart(event) {
+                event.dataTransfer.setData('text/plain', event.target.dataset.index);
+                setTimeout(() => {
+                    event.target.classList.add('hide');
+                }, 0);
+            }
+
+            function dragOver(event) {
+                event.preventDefault();
+            }
+
+            function drop(event) {
+                event.preventDefault();
+                const fromIndex = event.dataTransfer.getData('text/plain');
+                const toIndex = event.target.dataset.index;
+                const fromPiece = document.querySelector(`.puzzle-piece[data-index="${fromIndex}"]`);
+                const toPiece = document.querySelector(`.puzzle-piece[data-index="${toIndex}"]`);
+
+                if (toPiece.classList.contains('empty')) {
+                    [fromPiece.dataset.index, toPiece.dataset.index] = [toPiece.dataset.index, fromPiece.dataset.index];
+                    puzzleContainer.insertBefore(fromPiece, toPiece);
+                    emptyPiece = fromPiece;
+                    fromPiece.classList.remove('empty');
+                    toPiece.classList.add('empty');
+                    toPiece.style.backgroundImage = 'none';
+                    fromPiece.style.backgroundImage = `url(${imageUrl})`;
+                    fromPiece.style.backgroundPosition = `-${fromPiece.dataset.index % puzzleSize * 100}px -${Math.floor(fromPiece.dataset.index / puzzleSize) * 100}px`;
+                }
+            }
+
+            function dragEnd(event) {
+                event.target.classList.remove('hide');
+            }
+
+            const pieces = createPuzzlePieces();
+            shufflePieces(pieces);
+            addPiecesToContainer(pieces);
+            makePiecesDraggable(pieces);
+        });
+    </script>
+</body>
+</html>
